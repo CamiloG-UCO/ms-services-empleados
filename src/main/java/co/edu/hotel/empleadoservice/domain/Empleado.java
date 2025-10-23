@@ -3,6 +3,7 @@ package co.edu.hotel.empleadoservice.domain;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -11,7 +12,8 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "empleados")
-public class Empleados {
+@Component
+public class Empleado {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -27,9 +29,8 @@ public class Empleados {
     @JoinColumn(name = "tipo_identificacion_id", nullable = false)
     private TipoIdentificacion identificationType;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Roles role;
+    @Column(nullable = false)
+    private String role;
 
     @Column(nullable = false)
     private String name;
