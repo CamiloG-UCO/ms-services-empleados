@@ -27,9 +27,8 @@ public class Empleados {
     @JoinColumn(name = "tipo_identificacion_id", nullable = false)
     private TipoIdentificacion identificationType;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Roles role;
+    @Column(nullable = false)
+    private String roles;
 
     @Column(nullable = false)
     private String name;
