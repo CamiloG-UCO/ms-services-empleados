@@ -1,14 +1,12 @@
 package co.edu.hotel.empleadoservice.domain;
 
 import jakarta.persistence.*;
-import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Data
 @Entity
 @Table(name = "empleados")
 public class Empleados {
@@ -34,7 +32,7 @@ public class Empleados {
     private String name;
 
     @Column(nullable = false)
-    private int contactNumber;
+    private String contactNumber;
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -54,5 +52,44 @@ public class Empleados {
 
     @Column(name = "registrar_by", nullable = false)
     private String registeredBy;
-}
 
+    // ---- Getters & Setters ----
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+
+    public int getIdentificationNumber() { return identificationNumber; }
+    public void setIdentificationNumber(int identificationNumber) { this.identificationNumber = identificationNumber; }
+
+    public TipoIdentificacion getIdentificationType() { return identificationType; }
+    public void setIdentificationType(TipoIdentificacion identificationType) { this.identificationType = identificationType; }
+
+    public String getRoles() { return roles; }
+    public void setRoles(String roles) { this.roles = roles; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getContactNumber() { return contactNumber; }
+    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public BigDecimal getSalary() { return salary; }
+    public void setSalary(BigDecimal salary) { this.salary = salary; }
+
+    public String getHotel() { return hotel; }
+    public void setHotel(String hotel) { this.hotel = hotel; }
+
+    public LocalDate getRegistrationDate() { return registrationDate; }
+    public void setRegistrationDate(LocalDate registrationDate) { this.registrationDate = registrationDate; }
+
+    public String getRegisteredBy() { return registeredBy; }
+    public void setRegisteredBy(String registeredBy) { this.registeredBy = registeredBy; }
+}
