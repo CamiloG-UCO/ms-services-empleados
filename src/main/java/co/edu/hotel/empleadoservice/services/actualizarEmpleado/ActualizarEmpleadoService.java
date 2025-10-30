@@ -1,7 +1,7 @@
 package co.edu.hotel.empleadoservice.services.actualizarEmpleado;
 
-import co.edu.hotel.empleadoservice.domain.Empleados;
-import co.edu.hotel.empleadoservice.repository.Empleado.EmpleadoRepository;
+import co.edu.hotel.empleadoservice.domain.Empleado;
+import co.edu.hotel.empleadoservice.repository.EmpleadoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,7 +30,7 @@ public class ActualizarEmpleadoService {
     ) {}
 
     @Transactional
-    public Empleados updateById(String id, String authorizationHeader, UpdateCmd cmd) {
+    public Empleado updateById(String id, String authorizationHeader, UpdateCmd cmd) {
         requireAdminRole(authorizationHeader);
 
         String updatedByEmail = extractEmailFromToken(authorizationHeader);
@@ -45,17 +45,17 @@ public class ActualizarEmpleadoService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID inválido");
         }
 
-        Optional<Empleados> optionalEmployee = employeeRepository.findById(employeeId);
+        Optional<Empleado> optionalEmployee = employeeRepository.findById(employeeId);
         if (optionalEmployee.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Empleado no encontrado");
         }
 
-        Empleados e = optionalEmployee.get();
+        Empleado e = optionalEmployee.get();
         return updateEmployeeFields(e, cmd, updatedByEmail);
     }
 
     @Transactional
-    public Empleados updateByCode(String code, String authorizationHeader, UpdateCmd cmd) {
+    public Empleado updateByCode(String code, String authorizationHeader, UpdateCmd cmd) {
         requireAdminRole(authorizationHeader);
 
         String updatedByEmail = extractEmailFromToken(authorizationHeader);
@@ -63,13 +63,13 @@ public class ActualizarEmpleadoService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token sin email del actualizador");
         }
 
-        Empleados e = employeeRepository.findByCode(code)
+        Empleado e = employeeRepository.findByCode(code)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Empleado no encontrado con código: " + code));
 
         return updateEmployeeFields(e, cmd, updatedByEmail);
     }
 
-    private Empleados updateEmployeeFields(Empleados e, UpdateCmd cmd, String updatedByEmail) {
+    private Empleado updateEmployeeFields(Empleado e, UpdateCmd cmd, String updatedByEmail) {
         if (cmd.name() != null && !cmd.name().isBlank()) e.setName(cmd.name().trim());
         if (cmd.contactNumber() != null && !cmd.contactNumber().isBlank()) e.setContactNumber(cmd.contactNumber().trim());
         if (cmd.role() != null && !cmd.role().isBlank()) e.setRoles(cmd.role().trim());

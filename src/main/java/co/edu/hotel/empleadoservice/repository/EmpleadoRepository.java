@@ -13,4 +13,5 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, UUID> {
     boolean existsByIdentificationNumber(int identificationNumber);
 
     Optional<Empleado> findFirstByCodeStartingWithOrderByCodeDesc(String prefix);
+    Optional<Empleado> findByCode(String code);
 }
