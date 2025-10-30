@@ -1,6 +1,6 @@
-package co.edu.hotel.empleadoservice.controller.creareEmpleado;
+package co.edu.hotel.empleadoservice.controller;
 
-import co.edu.hotel.empleadoservice.services.CrearEmpleado.CrearEmpleadoService;
+import co.edu.hotel.empleadoservice.services.crearEmpleado.CrearEmpleadoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/empleados")
 public class CrearEmpleadoController {
-
     private final CrearEmpleadoService service;
 
     public CrearEmpleadoController(CrearEmpleadoService service) {
@@ -28,12 +27,12 @@ public class CrearEmpleadoController {
     ) {}
 
     @PostMapping
-    public ResponseEntity<?> create(
+    public ResponseEntity<String> create(
             @RequestHeader("Authorization") String authorization,
             @RequestBody CreateEmployeeRequest body
     ) {
         try {
-            Empleados saved = service.create(
+            service.create(
                     authorization,
                     new CrearEmpleadoService.CreateCmd(
                             body.identificationNumber(),
@@ -47,7 +46,7 @@ public class CrearEmpleadoController {
                             body.hotel()
                     )
             );
-            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Empleado registrado exitosamente");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

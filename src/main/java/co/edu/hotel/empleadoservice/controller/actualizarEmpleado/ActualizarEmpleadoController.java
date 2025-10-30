@@ -1,6 +1,6 @@
 package co.edu.hotel.empleadoservice.controller.actualizarEmpleado;
 
-import co.edu.hotel.empleadoservice.domain.Empleados;
+import co.edu.hotel.empleadoservice.domain.Empleado;
 import co.edu.hotel.empleadoservice.services.actualizarEmpleado.ActualizarEmpleadoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +30,7 @@ public class ActualizarEmpleadoController {
             @RequestBody UpdateEmployeeRequest body
     ) {
         try {
-            Empleados updated = service.updateById(
+            Empleado updated = service.updateById(
                     id,
                     authorization,
                     new ActualizarEmpleadoService.UpdateCmd(
@@ -53,7 +53,7 @@ public class ActualizarEmpleadoController {
             @RequestBody UpdateEmployeeRequest body
     ) {
         try {
-            Empleados updated = service.updateByCode(
+            Empleado updated = service.updateByCode(
                     code,
                     authorization,
                     new ActualizarEmpleadoService.UpdateCmd(
