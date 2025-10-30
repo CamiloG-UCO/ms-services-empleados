@@ -12,6 +12,9 @@ import static io.cucumber.junit.platform.engine.Constants.FEATURES_PROPERTY_NAME
 /**
  * Runner principal para ejecutar todas las pruebas BDD con Cucumber.
  *
+ * IMPORTANTE: El GLUE debe apuntar al paquete base 'co.edu.hotel.empleadoservice.bdd'
+ * para que Cucumber encuentre tanto CucumberSpringConfiguration como los steps.
+ *
  * Ejecutar con:
  * - Maven: mvn test
  * - IDE: Run as JUnit Test
@@ -25,7 +28,7 @@ import static io.cucumber.junit.platform.engine.Constants.FEATURES_PROPERTY_NAME
 )
 @ConfigurationParameter(
         key = GLUE_PROPERTY_NAME,
-        value = "co.edu.hotel.empleadoservice.bdd.steps"
+        value = "co.edu.hotel.empleadoservice.bdd"
 )
 @ConfigurationParameter(
         key = PLUGIN_PROPERTY_NAME,
