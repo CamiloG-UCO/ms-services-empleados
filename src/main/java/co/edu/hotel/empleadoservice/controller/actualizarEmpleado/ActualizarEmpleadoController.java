@@ -6,9 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/empleados")
 public class ActualizarEmpleadoController {
@@ -20,30 +17,55 @@ public class ActualizarEmpleadoController {
     }
 
     public record UpdateEmployeeRequest(
-            String roles,
-            BigDecimal salary,
-            String contactNumber
+            String name,
+            String contactNumber,
+            String role,
+            java.math.BigDecimal salary
     ) {}
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(
+    public ResponseEntity<?> updateById(
             @RequestHeader("Authorization") String authorization,
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestBody UpdateEmployeeRequest body
     ) {
         try {
-            Empleados updated = service.update(
+            Empleados updated = service.updateById(
+                    id,
                     authorization,
                     new ActualizarEmpleadoService.UpdateCmd(
-                            id,
-                            body.roles(),
-                            body.salary(),
-                            body.contactNumber()
+                            body.name(),
+                            body.contactNumber(),
+                            body.role(),
+                            body.salary()
                     )
             );
-            return ResponseEntity.status(HttpStatus.OK).body(updated);
+            return ResponseEntity.ok(updated);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/code/{code}")
+    public ResponseEntity<?> updateByCode(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable String code,
+            @RequestBody UpdateEmployeeRequest body
+    ) {
+        try {
+            Empleados updated = service.updateByCode(
+                    code,
+                    authorization,
+                    new ActualizarEmpleadoService.UpdateCmd(
+                            body.name(),
+                            body.contactNumber(),
+                            body.role(),
+                            body.salary()
+                    )
+            );
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 }
