@@ -121,11 +121,11 @@
 		</dependency>
 
 		<!-- === Base de datos H2 para tests === -->
-		<!--<dependency>
+		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
-		</dependency>-->
+		</dependency>
 	</dependencies>
 
 	<build>
