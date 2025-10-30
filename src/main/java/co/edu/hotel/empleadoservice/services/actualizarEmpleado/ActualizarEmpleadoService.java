@@ -1,7 +1,7 @@
 package co.edu.hotel.empleadoservice.services.actualizarEmpleado;
 
 import co.edu.hotel.empleadoservice.domain.Empleado;
-import co.edu.hotel.empleadoservice.repository.Empleado.EmpleadoRepository;
+import co.edu.hotel.empleadoservice.repository.EmpleadoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

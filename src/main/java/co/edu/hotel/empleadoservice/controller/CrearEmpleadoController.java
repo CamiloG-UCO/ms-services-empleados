@@ -1,6 +1,6 @@
 package co.edu.hotel.empleadoservice.controller;
 
-import co.edu.hotel.empleadoservice.services.crearEmpleado.CrearEmpleadoService;
+import co.edu.hotel.empleadoservice.services.CrearEmpleado.CrearEmpleadoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
