@@ -1,67 +1,105 @@
 package co.edu.hotel.empleadoservice.steps;
 
+import co.edu.hotel.empleadoservice.domain.Empleado;
+import co.edu.hotel.empleadoservice.domain.TipoIdentificacion;
+import co.edu.hotel.empleadoservice.repository.EmpleadoRepository;
+import co.edu.hotel.empleadoservice.repository.TipoIdentificacionRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.es.*;
 import org.junit.jupiter.api.Assertions;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-@SpringBootTest
-@AutoConfigureMockMvc
 public class RegistrarEmpleadoSteps {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private JdbcTemplate jdbc;  // SQL directo para preparar datos
+    @Autowired private MockMvc mockMvc;
+    @Autowired private EmpleadoRepository employeeRepository;
+    @Autowired private TipoIdentificacionRepository idTypeRepository;
 
     private String hotel;
     private MvcResult result;
 
-    // Token ADMIN por defecto (para todos los escenarios)
-    private static final String ADMIN_TOKEN =
-            "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzaW1vbmNhcmRlbmFzQGdtYWlsLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc2MTg0NTU1MSwiZXhwIjoxNzYxOTMxOTUxfQ.Rv-sONVVZ6-lSa3b7b7zfp5qa8ZBo2SYIWFcathejIo";
+    private static final String AUTH_URL =
+            "https://ms-services-users.up.railway.app/api/v1/auth/login";
 
-    // typeId válido presente en BD
+    private static final String ADMIN_EMAIL =
+            System.getProperty("TEST_ADMIN_EMAIL", "simoncardenasramirez41@gmail.com");
+    private static final String ADMIN_PASS =
+            System.getProperty("TEST_ADMIN_PASS", "abcd1234");
+
+    private static final String ADMIN_TOKEN = obtenerTokenDesdeAuth();
+
+    private static String obtenerTokenDesdeAuth() {
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String bodyJson = """
+                {"email":"%s","password":"%s"}
+                """.formatted(ADMIN_EMAIL, ADMIN_PASS);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(AUTH_URL))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(bodyJson))
+                    .build();
+
+            HttpResponse<String> resp =
+                    client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (resp.statusCode() / 100 != 2) {
+                throw new IllegalStateException(
+                        "Login Auth falló. HTTP " + resp.statusCode() + " Body: " + resp.body());
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            String token = mapper.readTree(resp.body()).path("token").asText(null);
+            if (token == null || token.isBlank()) {
+                throw new IllegalStateException("Login Auth no devolvió 'token'. Body: " + resp.body());
+            }
+            return token;
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo obtener token dinámico de Auth", e);
+        }
+    }
+    // ===================================================================
+
     private static final String IDTYPE_VALIDO = "bf08dbaa-c69c-41fa-a01a-31c8ea753bf3";
 
     @Dado("el hotel {string}")
     public void elHotel(String hotel) {
         this.hotel = hotel;
 
-        // Aseguramos tipo de identificación válido
-        var id = java.util.UUID.fromString(IDTYPE_VALIDO);
-        try {
-            jdbc.update(
-                    "INSERT INTO identification_types (id, name) VALUES (?, ?) " +
-                            "ON CONFLICT (id) DO NOTHING",
-                    id, "Cédula"
-            );
-        } catch (Exception e) {
-            System.out.println("WARN insert identification_types: " + e.getMessage());
-        }
+        // defaults
+        when(employeeRepository.existsByEmail(anyString())).thenReturn(false);
+        when(employeeRepository.existsByIdentificationNumber(anyInt())).thenReturn(false);
+        when(employeeRepository.findFirstByCodeStartingWithOrderByCodeDesc("EMP-"))
+                .thenReturn(Optional.empty());
+        when(employeeRepository.save(Mockito.any(Empleado.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        UUID typeId = UUID.fromString(IDTYPE_VALIDO);
+        TipoIdentificacion ti = new TipoIdentificacion();
+        ti.setId(typeId);
+        ti.setName("Cédula");
+        when(idTypeRepository.findById(typeId)).thenReturn(Optional.of(ti));
     }
 
-    // ---------- ESCENARIO ÉXITO ----------
     @Cuando("el administrador ingresa identificación {string}, tipo_identificacion {string}, rol {string}, nombre {string}, contacto {string}, correo {string}, contraseña {string}, salario {string}")
     public void elAdministradorIngresa(String identificacion, String tipo, String rol, String nombre,
                                        String contacto, String correo, String contrasena, String salario) throws Exception {
-
-        // Limpieza defensiva
-        try {
-            jdbc.update("DELETE FROM empleados WHERE email = ? OR identification_number = ?",
-                    correo, Integer.parseInt(identificacion));
-        } catch (Exception e) {
-            System.out.println("WARN delete empleados: " + e.getMessage());
-        }
-
         String json = """
             {
               "identificationNumber": %s,
@@ -80,8 +118,7 @@ public class RegistrarEmpleadoSteps {
                         post("/api/empleados")
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
+                                .content(json))
                 .andReturn();
 
         int status = result.getResponse().getStatus();
@@ -96,52 +133,22 @@ public class RegistrarEmpleadoSteps {
     }
 
     @Y("mostrar el mensaje {string}")
-    public void mostrarElMensaje(String mensajeEsperado) throws Exception {
+    public void mostrarElMensaje(String esperado) throws Exception {
         String body = result.getResponse().getContentAsString();
-        Assertions.assertTrue(body.contains(mensajeEsperado),
+        Assertions.assertTrue(body.contains(esperado),
                 "No se encontró el mensaje esperado. Body: " + body);
     }
 
-    // ---------- PRECONDICIÓN PARA DUPLICADOS ----------
     @Y("existe un empleado previamente con email {string} e identificación {string}")
-    public void existeEmpleadoPreviamente(String email, String identificacion) throws Exception {
-        try {
-            jdbc.update("DELETE FROM empleados WHERE email = ? OR identification_number = ?",
-                    email, Integer.parseInt(identificacion));
-        } catch (Exception e) {
-            System.out.println("WARN delete empleados: " + e.getMessage());
-        }
+    public void existeEmpleadoPreviamente(String email, String identificacion) {
+        when(employeeRepository.existsByEmail(anyString())).thenReturn(false);
+        when(employeeRepository.existsByIdentificationNumber(anyInt())).thenReturn(false);
 
-        String json = """
-            {
-              "identificationNumber": %s,
-              "identificationTypeId": "%s",
-              "role": "RECEPCIONISTA",
-              "name": "Empleado Previo",
-              "contactNumber": "3001111111",
-              "email": "%s",
-              "password": "pwd",
-              "salary": 1000000,
-              "hotel": "%s"
-            }
-            """.formatted(identificacion, IDTYPE_VALIDO, email, hotel);
-
-        var pre = mockMvc.perform(
-                        post("/api/empleados")
-                                .header("Authorization", "Bearer " + ADMIN_TOKEN)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andReturn();
-
-        int status = pre.getResponse().getStatus();
-        if (status != 201) {
-            throw new AssertionError("No se pudo crear el empleado previo (esperado 201, fue " + status +
-                    "). Body: " + pre.getResponse().getContentAsString());
-        }
+        when(employeeRepository.existsByEmail(eq(email))).thenReturn(true);
+        when(employeeRepository.existsByIdentificationNumber(eq(Integer.parseInt(identificacion))))
+                .thenReturn(true);
     }
 
-    // ---------- INTENTO genérico (usa typeId válido) ----------
     @Cuando("intenta registrar identificación {string}  tipo_identificacion {string}  rol {string}  nombre {string}  contacto {string}  correo {string}  contraseña {string}  salario {string}")
     public void intenta_registrar(String identificacion, String tipo, String rol, String nombre,
                                   String contacto, String correo, String contrasena, String salario) throws Exception {
@@ -164,23 +171,17 @@ public class RegistrarEmpleadoSteps {
                         post("/api/empleados")
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
+                                .content(json))
                 .andReturn();
     }
 
-    // ---------- INTENTO con typeId proporcionado (para el inexistente) ----------
     @Cuando("intenta registrar con typeId {string} identificación {string}  rol {string}  nombre {string}  contacto {string}  correo {string}  contraseña {string}  salario {string}")
-    public void intenta_registrar_con_typeid_inexistente(String typeId, String identificacion, String rol,
+    public void intenta_registrar_con_typeid_inexistente(String typeIdStr, String identificacion, String rol,
                                                          String nombre, String contacto, String correo,
                                                          String contrasena, String salario) throws Exception {
 
-        try {
-            jdbc.update("DELETE FROM empleados WHERE email = ? OR identification_number = ?",
-                    correo, Integer.parseInt(identificacion));
-        } catch (Exception e) {
-            System.out.println("WARN delete empleados: " + e.getMessage());
-        }
+        UUID badId = UUID.fromString(typeIdStr);
+        when(idTypeRepository.findById(badId)).thenReturn(Optional.empty());
 
         String json = """
             {
@@ -194,18 +195,16 @@ public class RegistrarEmpleadoSteps {
               "salary": %s,
               "hotel": "%s"
             }
-            """.formatted(identificacion, typeId, rol, nombre, contacto, correo, contrasena, salario, hotel);
+            """.formatted(identificacion, typeIdStr, rol, nombre, contacto, correo, contrasena, salario, hotel);
 
         result = mockMvc.perform(
                         post("/api/empleados")
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
+                                .content(json))
                 .andReturn();
     }
 
-    // ---------- Validaciones genéricas ----------
     @Entonces("la respuesta es {int}")
     public void la_respuesta_es(Integer esperado) {
         int actual = result.getResponse().getStatus();
