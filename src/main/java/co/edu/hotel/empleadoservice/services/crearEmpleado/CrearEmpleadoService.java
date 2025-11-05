@@ -1,4 +1,4 @@
-package co.edu.hotel.empleadoservice.services.CrearEmpleado;
+package co.edu.hotel.empleadoservice.services.crearEmpleado;
 
 import co.edu.hotel.empleadoservice.domain.Empleado;
 import co.edu.hotel.empleadoservice.domain.TipoIdentificacion;
