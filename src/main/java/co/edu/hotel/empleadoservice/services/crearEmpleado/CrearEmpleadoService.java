@@ -1,23 +1,23 @@
-package co.edu.hotel.empleadoservice.services.CrearEmpleado;
+package co.edu.hotel.empleadoservice.services.crearEmpleado;
 
-import co.edu.hotel.empleadoservice.domain.Empleados;
+import co.edu.hotel.empleadoservice.domain.Empleado;
 import co.edu.hotel.empleadoservice.domain.TipoIdentificacion;
-import co.edu.hotel.empleadoservice.repository.Empleado.EmpleadoRepository;
-import co.edu.hotel.empleadoservice.repository.TipoDeIdentificacion.TipoDeIdentificacionRepository;
+import co.edu.hotel.empleadoservice.repository.EmpleadoRepository;
+import co.edu.hotel.empleadoservice.repository.TipoIdentificacionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
 public class CrearEmpleadoService {
 
     private final EmpleadoRepository employeeRepository;
-    private final TipoDeIdentificacionRepository idTypeRepository;
+    private final TipoIdentificacionRepository idTypeRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -25,12 +25,12 @@ public class CrearEmpleadoService {
     private static final int CODE_DIGITS = 4; // EMP-0001
 
     public CrearEmpleadoService(EmpleadoRepository employeeRepository,
-                                TipoDeIdentificacionRepository idTypeRepository) {
+                                TipoIdentificacionRepository idTypeRepository) {
         this.employeeRepository = employeeRepository;
         this.idTypeRepository = idTypeRepository;
     }
 
-    // simple command (sin DTO extra)
+    /** Comando de entrada para crear empleado **/
     public record CreateCmd(
             int identificationNumber,
             String identificationTypeId,
@@ -44,29 +44,33 @@ public class CrearEmpleadoService {
     ) {}
 
     @Transactional
-    public Empleados create(String authorizationHeader, CreateCmd cmd) {
+    public void create(String authorizationHeader, CreateCmd cmd) {
         requireAdminRole(authorizationHeader);
 
         String createdByEmail = extractEmailFromToken(authorizationHeader);
         if (createdByEmail == null || createdByEmail.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token sin email del creador");
+            throw new IllegalStateException("Token sin email del creador");
         }
 
         String normalizedEmail = cmd.email().trim().toLowerCase();
+
+        // ---- Validaciones de negocio ----
         if (employeeRepository.existsByEmail(normalizedEmail)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+            throw new IllegalStateException("El email ya existe");
         }
+
         if (employeeRepository.existsByIdentificationNumber(cmd.identificationNumber())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Identification number already exists");
+            throw new IllegalStateException("Número de identificación ya existente");
         }
 
         var idTypeId = java.util.UUID.fromString(cmd.identificationTypeId());
         TipoIdentificacion idType = idTypeRepository.findById(idTypeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Identification type not found"));
+                .orElseThrow(() -> new NoSuchElementException("Tipo de identificación no encontrado"));
 
         String code = nextEmployeeCode();
 
-        Empleados e = new Empleados();
+        // ---- Creación del empleado ----
+        Empleado e = new Empleado();
         e.setCode(code);
         e.setIdentificationNumber(cmd.identificationNumber());
         e.setIdentificationType(idType);
@@ -77,29 +81,31 @@ public class CrearEmpleadoService {
         e.setPassword(passwordEncoder.encode(cmd.password()));
         e.setSalary(cmd.salary());
         e.setHotel(cmd.hotel());
-
         e.setRegisteredBy(createdByEmail);
 
-        return employeeRepository.save(e);
+        employeeRepository.save(e);
     }
 
+    // ----------- Helpers internos -----------
+
+    /** Solo ADMIN puede crear empleados **/
     private void requireAdminRole(String authorizationHeader) {
         String role = extractRoleFromToken(authorizationHeader);
         System.out.println("[AUTH] Detected role => " + role);
         if (!"ADMIN".equalsIgnoreCase(role)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Only ADMIN can create employees (detected: " + role + ")");
+            throw new AccessDeniedException("Solamente el admin puede crear empleados (detectado: " + role + ")");
         }
     }
 
+    /** Extrae el rol desde el JWT **/
     private String extractRoleFromToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing Bearer token");
+            throw new IllegalArgumentException("No hay token");
         }
         try {
             String token = authorizationHeader.substring(7).trim();
             String[] parts = token.split("\\.");
-            if (parts.length < 2) throw new IllegalArgumentException("Invalid JWT");
+            if (parts.length < 2) throw new IllegalArgumentException("JWT inválido");
 
             String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]),
                     java.nio.charset.StandardCharsets.UTF_8);
@@ -115,18 +121,19 @@ public class CrearEmpleadoService {
 
             return "UNKNOWN";
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot read JWT");
+            throw new IllegalArgumentException("No se pudo leer el JWT");
         }
     }
 
+    /** Extrae el email del token **/
     private String extractEmailFromToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing Bearer token");
+            throw new IllegalArgumentException("No hay token");
         }
         try {
             String token = authorizationHeader.substring(7).trim();
             String[] parts = token.split("\\.");
-            if (parts.length < 2) throw new IllegalArgumentException("Invalid JWT");
+            if (parts.length < 2) throw new IllegalArgumentException("JWT inválido");
 
             String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]),
                     java.nio.charset.StandardCharsets.UTF_8);
@@ -134,12 +141,14 @@ public class CrearEmpleadoService {
             var p = mapper.readTree(payloadJson);
 
             if (p.has("email") && p.get("email").isTextual()) return p.get("email").asText();
-            if (p.has("sub") && p.get("sub").isTextual() && p.get("sub").asText().contains("@")) return p.get("sub").asText();
-            if (p.has("username") && p.get("username").isTextual() && p.get("username").asText().contains("@")) return p.get("username").asText();
+            if (p.has("sub") && p.get("sub").isTextual() && p.get("sub").asText().contains("@"))
+                return p.get("sub").asText();
+            if (p.has("username") && p.get("username").isTextual() && p.get("username").asText().contains("@"))
+                return p.get("username").asText();
             if (p.has("preferred_username") && p.get("preferred_username").isTextual()
-                    && p.get("preferred_username").asText().contains("@")) return p.get("preferred_username").asText();
+                    && p.get("preferred_username").asText().contains("@"))
+                return p.get("preferred_username").asText();
 
-            // fallback regex si el provider usa otra key
             var m = java.util.regex.Pattern
                     .compile("[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}", java.util.regex.Pattern.CASE_INSENSITIVE)
                     .matcher(payloadJson);
@@ -147,17 +156,18 @@ public class CrearEmpleadoService {
 
             return null;
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot read JWT");
+            throw new IllegalArgumentException("No se pudo leer el JWT");
         }
     }
 
+    /** Genera siguiente código EMP-XXXX **/
     private String nextEmployeeCode() {
-        Optional<Empleados> last = employeeRepository
+        Optional<Empleado> last = employeeRepository
                 .findFirstByCodeStartingWithOrderByCodeDesc(CODE_PREFIX);
 
         int n = 1;
         if (last.isPresent()) {
-            String prev = last.get().getCode(); // e.g., EMP-0010
+            String prev = last.get().getCode();
             String digits = prev.substring(CODE_PREFIX.length()).replaceAll("\\D", "");
             if (!digits.isEmpty()) n = Integer.parseInt(digits) + 1;
         }

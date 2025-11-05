@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.util.UUID;
 
-@Data
 @Entity
 @Table(name = "identification_types")
 public class TipoIdentificacion {
@@ -15,4 +14,20 @@ public class TipoIdentificacion {
 
     @Column(unique = true, nullable = false)
     private String name;
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

@@ -2,14 +2,13 @@ package co.edu.hotel.empleadoservice.domain;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
 @Table(name = "empleados")
-public class Empleados {
+public class Empleado {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -91,5 +90,5 @@ public class Empleados {
     public void setRegistrationDate(LocalDate registrationDate) { this.registrationDate = registrationDate; }
 
     public String getRegisteredBy() { return registeredBy; }
-    public void setRegisteredBy(String registeredBy) { this.registeredBy = registeredBy; }
+    public void setRegisteredBy(String registeredBy) { this.registeredBy = registeredBy;}
 }
