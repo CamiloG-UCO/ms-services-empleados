@@ -19,7 +19,7 @@ public class ConsultarEmpleadoController {
     }
 
     // Consultar empleado por código
-    @GetMapping("/{code}")
+    @GetMapping("/consultar/{code}")
     public ResponseEntity<Empleado> getEmpleado(@PathVariable String code) {
         try {
             Empleado empleado = service.getEmpleadoByCode(code);
@@ -30,14 +30,14 @@ public class ConsultarEmpleadoController {
     }
 
     // Listar empleados por hotel
-    @GetMapping("/hotel/{hotel}")
+    @GetMapping("/consultar/hotel/{hotel}")
     public ResponseEntity<List<Empleado>> getEmpleadosByHotel(@PathVariable String hotel) {
         List<Empleado> empleados = service.getEmpleadosByHotel(hotel);
         return ResponseEntity.ok(empleados); // aunque la lista esté vacía, devolvemos 200 OK
     }
 
     // En ConsultarEmpleadoController
-    @GetMapping
+    @GetMapping("/consultar")
     public ResponseEntity<List<Empleado>> getAllEmpleados() {
         List<Empleado> empleados = service.getAllEmpleados();
         return ResponseEntity.ok(empleados); // aunque la lista esté vacía, devolvemos 200 OK
