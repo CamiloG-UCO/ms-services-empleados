@@ -23,4 +23,6 @@ public class CucumberSpringConfiguration {
 
     @MockitoBean
     private EliminarEmpleadoService eliminarEmpleadoService;
+
+
 }
