@@ -18,15 +18,18 @@ public class EliminarEmpleadoController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(
+    public ResponseEntity<String> delete(
             @RequestHeader("Authorization") String authorization,
             @PathVariable UUID id
     ) {
         try {
-            service.delete(authorization, id);
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204 sin contenido
+            service.delete(id);
+            return ResponseEntity.status(HttpStatus.OK).body("Empleado eliminado exitosamente");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Error al eliminar el empleado: " + e.getMessage());
         }
     }
 }
+

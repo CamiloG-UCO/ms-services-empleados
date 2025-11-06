@@ -14,7 +14,7 @@ public class EliminarEmpleadoService {
         this.repository = repository;
     }
 
-    public void delete(String authorization, UUID id) {
+    public void delete(UUID id) {
         if (!repository.existsById(id)) {
             throw new IllegalArgumentException("El empleado con ID " + id + " no existe.");
         }
