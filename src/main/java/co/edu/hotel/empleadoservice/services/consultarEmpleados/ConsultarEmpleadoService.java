@@ -5,7 +5,7 @@ import co.edu.hotel.empleadoservice.repository.EmpleadoRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
+
 
 @Service
 public class ConsultarEmpleadoService {
@@ -31,7 +31,6 @@ public class ConsultarEmpleadoService {
     public List<Empleado> getAllEmpleados() {
         return repository.findAll();
     }
-
 
 
 }
