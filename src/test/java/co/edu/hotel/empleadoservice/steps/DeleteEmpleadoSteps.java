@@ -23,8 +23,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 public class DeleteEmpleadoSteps {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private EmpleadoRepository employeeRepository;
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private EmpleadoRepository employeeRepository;
 
     private MvcResult result;
     private Empleado empleado;
@@ -62,19 +65,23 @@ public class DeleteEmpleadoSteps {
 
             ObjectMapper mapper = new ObjectMapper();
             String token = mapper.readTree(resp.body()).path("token").asText(null);
+
             if (token == null || token.isBlank()) {
                 throw new IllegalStateException("Login Auth no devolvió 'token'. Body: " + resp.body());
             }
+
             return token;
+
         } catch (Exception e) {
             throw new RuntimeException("No se pudo obtener token dinámico de Auth", e);
         }
     }
 
-    // ==================================================================
+    // ===========================================================================================
+
     @Dado("el empleado {string} sin tareas ni turnos activos")
     public void elEmpleadoSinTareasNiTurnosActivos(String codigoEmpleado) {
-        // 1. Creamos un empleado simulado
+
         empleado = new Empleado();
         empleado.setId(UUID.randomUUID());
         empleado.setCode(codigoEmpleado);
@@ -84,24 +91,26 @@ public class DeleteEmpleadoSteps {
         empleado.setHotel("Hotel Test");
         empleado.setSalary(new java.math.BigDecimal("1800000"));
 
-        // 2. Aceptamos cualquier UUID para findById()
+        // Mock de búsqueda por ID (aunque ya NO se usa para eliminar)
         when(employeeRepository.findById(Mockito.any(UUID.class)))
                 .thenReturn(Optional.of(empleado));
 
-        // 3. Simulamos que la eliminación se realiza sin lanzar errores
+        // Mock de eliminación correcta
         Mockito.doNothing().when(employeeRepository).delete(Mockito.any(Empleado.class));
 
-        System.out.println("Empleado simulado creado con ID: " + empleado.getId());
+        System.out.println("Empleado simulado creado con código: " + empleado.getCode());
     }
 
     @Cuando("el usuario de RRHH confirme la acción con {string}")
     public void elUsuarioConfirmaLaAccionCon(String confirmacion) throws Exception {
+
         if (!confirmacion.equalsIgnoreCase("SI, ELIMINAR")) {
             throw new IllegalArgumentException("La confirmación debe ser 'SI, ELIMINAR'");
         }
 
+        // IMPORTANTE: eliminar por CÓDIGO, NO por ID
         result = mockMvc.perform(
-                        delete("/api/empleados/" + empleado.getId())
+                        delete("/api/empleados/codigo/{code}", empleado.getCode())
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
@@ -109,11 +118,15 @@ public class DeleteEmpleadoSteps {
 
     @Entonces("el sistema debe eliminar el registro {string} y mostrar el mensaje {string}")
     public void elSistemaDebeEliminarElRegistroYMostrarElMensaje(String codigoEsperado, String mensajeEsperado) throws Exception {
+
         int status = result.getResponse().getStatus();
         String body = result.getResponse().getContentAsString();
 
+        // Esperamos 200
         Assertions.assertEquals(200, status,
                 "Se esperaba HTTP 200, pero fue " + status + ". Body: " + body);
+
+        // Validamos mensaje JSON
         Assertions.assertTrue(body.contains(mensajeEsperado),
                 "El cuerpo no contiene el mensaje esperado. Body: " + body);
     }
