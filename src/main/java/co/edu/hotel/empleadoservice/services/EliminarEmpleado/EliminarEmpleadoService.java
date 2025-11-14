@@ -1,31 +1,30 @@
 package co.edu.hotel.empleadoservice.services.EliminarEmpleado;
 
 import co.edu.hotel.empleadoservice.domain.Empleado;
+import co.edu.hotel.empleadoservice.services.consultarEmpleados.ConsultarEmpleadoService;
 import co.edu.hotel.empleadoservice.repository.EmpleadoRepository;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class EliminarEmpleadoService {
 
     private final EmpleadoRepository repository;
+    private final ConsultarEmpleadoService consultarEmpleadoService;
 
-    public EliminarEmpleadoService(EmpleadoRepository repository) {
+    public EliminarEmpleadoService(EmpleadoRepository repository,
+                                   ConsultarEmpleadoService consultarEmpleadoService) {
         this.repository = repository;
+        this.consultarEmpleadoService = consultarEmpleadoService;
     }
 
+    // Eliminar empleado por código reutilizando la lógica de consulta
+    public void deleteByCode(String code) {
+        Empleado empleado = consultarEmpleadoService.getEmpleadoByCode(code);
 
-    public Optional<Empleado> findById(UUID id) {
-        return repository.findById(id);
-    }
-
-
-    public void delete(UUID id) {
-        if (!repository.existsById(id)) {
-            throw new IllegalArgumentException("El empleado con ID " + id + " no existe.");
+        if (empleado == null) {
+            throw new IllegalArgumentException("No se encontró el empleado con código " + code);
         }
-        repository.deleteById(id);
+
+        repository.delete(empleado);
     }
 }
