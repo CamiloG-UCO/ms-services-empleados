@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/empleados")
@@ -19,24 +18,13 @@ public class EliminarEmpleadoController {
         this.service = service;
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> obtenerEmpleadoPorId(
+    @DeleteMapping("/codigo/{code}")
+    public ResponseEntity<?> deleteByCode(
             @RequestHeader(value = "Authorization", required = false) String authorization,
-            @PathVariable UUID id
-    ) {
-        return service.findById(id)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "No se encontró ningún empleado con el ID " + id)));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(
-            @RequestHeader(value = "Authorization", required = false) String authorization,
-            @PathVariable UUID id
+            @PathVariable String code
     ) {
         try {
-            service.delete(id);
+            service.deleteByCode(code);
             return ResponseEntity.ok(Map.of("message", "Empleado eliminado exitosamente"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
